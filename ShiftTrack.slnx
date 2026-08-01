@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ShiftTrack.UI/ShiftTrack.UI.csproj" />
+  <Project Path="ShiftTrack/ShiftTrack.csproj" />
+</Solution>
