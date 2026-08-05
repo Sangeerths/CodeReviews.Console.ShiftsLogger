@@ -77,4 +77,51 @@ ShiftTrack.UI/                       # Console client
 
 Validation failures throw `ArgumentException`, which each menu action catches and displays via `ConsoleUI.ShowError`.
 
+## Architectural Choices
+
+- **Two-project split (API + console client)** — `ShiftTrack` (the Web API) 
+  and `ShiftTrack.UI` (the console client) are kept as separate projects 
+  rather than one combined console app. This mirrors a real-world setup 
+  where a backend and its client are decoupled: the API owns data access 
+  and business rules, while the console client is just one possible 
+  consumer of that API. This also means another client (a web frontend, 
+  a mobile app) could be built later without touching the API at all.
+
+- **API layer (`ShiftTrack`)** — follows a standard ASP.NET Core structure 
+  (`Controllers` → `Services` → `Models`/`DTO`), keeping HTTP concerns 
+  (routing, status codes) in Controllers, business/data logic in Services, 
+  and using DTOs so the API's public contract doesn't leak internal EF Core 
+  entity shapes to consumers.
+
+- **Console client (`ShiftTrack.UI`)** — talks to the API purely over HTTP 
+  (`EmployeeApiService`, `ShiftApiService`), with no direct database access 
+  of its own. This enforces a clean boundary: the console app doesn't know 
+  or care whether the API is backed by SQL Server, another database, or 
+  even a different backend entirely — it only knows the API's HTTP contract.
+
+- **Shared `ValidationService` on the client side** — input is validated 
+  *before* a request is sent to the API, so obviously invalid input (empty 
+  names, negative IDs) is caught immediately with fast, clear feedback, 
+  rather than waiting on a round-trip to the API just to get a 400 response. 
+  The API is still expected to validate independently too, since a client 
+  can't be trusted as the only line of defense.
+
+- **DTOs per operation** (`CreateEmployeeDto`, `UpdateEmployeeDto`, 
+  `EmployeeDto`) — rather than one shared model, separate DTOs per action 
+  make it clear exactly what fields are required/allowed for each operation 
+  (e.g., you can't accidentally set an `Id` on create), and keep the API 
+  contract explicit and self-documenting.
+
+- **Spectre.Console for the UI layer** — chosen over plain 
+  `Console.WriteLine` calls to give the client a more usable, readable 
+  interface (tables, spinners, colored status messages) without needing 
+  a full GUI framework.
+
+  ## Reflection
+
+This project helped me understand the client-server relationship 
+more concretely than just building a single monolithic console app 
+having to actually run two separate projects together, and debug issues 
+across the HTTP endpoints.
+
 
